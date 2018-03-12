@@ -1,4 +1,4 @@
-#EC-UGR
+# EC-UGR
 
 Prácticas de la asignatura Estructura de Computadores de la Universidad de Granada.
 \
