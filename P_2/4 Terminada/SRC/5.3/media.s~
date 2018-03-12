@@ -1,0 +1,82 @@
+.section .data						#Sección de datos del proceso
+	.macro linea					  #Sucesiones de números que vamos a sumar. Se coge uno cada vez.
+	# .int 1,‐2,1,‐2
+	 .int 1,2,-3,-4
+	# .int 0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF
+	# .int 0xF0000000,0xE0000000,0xE0000000,0xD0000000
+	# .int -1,-1,-1,-1
+	# .int 0,-1,-1,-1
+	# .int 0,-2,-1,-1
+	# .int 1,‐2,‐1,‐1
+	# .int 0x10000000,0x20000000,0x40000000,0x80000000
+	# .int 32,‐2,‐1,‐1
+	# .int 0xffffffff,0xffffffff,0xffffffff,0xffffffff
+	# .int 63,‐2,‐1,‐1
+	# .int 64,‐2,‐1,‐1
+	# .int 0x08000000,0x08000000,0x08000000,0x08000000
+	# .int 95,‐2,‐1,‐1
+	# .int ‐31,‐2,‐1,‐1
+	# .int 1,1,1,1
+	# .int 0,‐2,‐1,‐1
+	
+	.endm
+		
+lista:		
+	.irpc i,01234567 		#Número de repeticiones del macro en cada ejecución. En este caso serían 8.
+		linea
+	.endr
+
+longlista:	.int (.-lista)/4
+media:		.int 0x01234567
+resto:  	.int 0x12345678
+formato:	
+	.ascii "media = %d, resto = %d\n\0"
+
+.section .text
+#_start:	.global _start  #Inicio el proceso en ensamblador
+main:		.global main  	#Inicio del proceso para usar printf
+
+	mov    $lista, %ebx
+	mov longlista, %ecx
+	call suma		            #Llamada a la subrutina suma
+	mov %eax, media
+	mov %edx, resto
+
+
+	push resto		          #Meto en pila resto.
+	push media 
+	push $formato 		      #Guarda en pila lo que está dentro de la variable formato
+	call printf 		        #Te muestra todo lo que hay en pila. Te imprime por pantalla.
+	add $12, %esp	          #Esto es lo mismo que hacer 3 pop %ebx, puesto que push resta 4 a pila y pop +4 (3x4 = 12).esp(puntero de pila)	
+
+	mov $1, %eax 		        #Instrucciones necesarias
+	mov $0, %ebx
+	int $0x80
+
+suma:
+	push %esi
+	push %edi
+	mov $0, %eax
+	mov $0, %edx
+	mov $0, %esi
+bucle:
+	mov (%ebx,%esi,4), %edi
+	cmp $0, %edi			    # Comparar 0.
+	jl  negativo			    # Salta si es negativo
+	add %edi, %eax
+	adc $0, %edx 			    #Suma acarreo,
+
+seguir:
+	inc       %esi 			  #incrementa 1
+	cmp  %esi,%ecx 			  #comparar
+	jne bucle 			      #salta != bucle
+	idiv %ecx
+	pop %esi
+	pop %edi
+	ret 				          #return
+negativo:
+	add %edi, %eax
+	adc $0xffffffff, %edx
+	jmp seguir			      
+
+

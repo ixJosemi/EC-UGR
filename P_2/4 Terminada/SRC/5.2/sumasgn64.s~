@@ -1,0 +1,73 @@
+.section .data						#Sección de datos del proceso
+	.macro linea					#Sucesiones de números que vamos a sumar. Se coge uno cada vez.
+	 .int -1,-1,-1,-1
+	# .int 1,-2,1,-2
+	# .int 1,2,-3,-4
+	# .int 0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF
+	# .int 0x80000000,0x80000000,0x80000000,0x80000000
+	# .int 0x04000000,0x04000000,0x04000000,0x04000000
+	# .int 0x08000000,0x08000000,0x08000000,0x08000000
+	# .int 0xFC000000,0xFC000000,0xFC000000,0xFC000000
+	# .int 0xF8000000,0xF8000000,0xF8000000,0xF8000000
+	# .int 0xF0000000,0xE0000000,0xE0000000,0xD0000000
+	
+	.endm
+		
+lista:		
+	.irpc i,01234567 				#Número de repeticiones del macro en cada ejecución. En este caso serían 8.
+		linea
+	.endr
+
+longlista:	.int (.-lista)/4
+resultado:	.quad 0x0123456701234567 #2x8 = 16
+formato:	
+	.ascii "suma = %lld = %llx hex\n\0" 		# %llu (muestra long long unsigned)
+
+.section .text
+#_start:	.global _start  			#Inicio el proceso en ensamblador
+main:		.global main  				#Inicio del proceso para usar printf
+
+	mov    $lista, %ebx
+	mov longlista, %ecx
+	call suma
+	mov %eax, resultado
+	mov %edx, resultado+4 #4bytes más (bits más significativos)
+
+	push resultado+4
+	push resultado #Meto en pila resultado.
+	push resultado+4
+	push resultado 
+	push $formato 					#Guarda en pila lo que está dentro de la variable formato
+	call printf 					#Te muestra todo lo que hay en pila. Te imprime por pantalla.
+	add $20, %esp 					#Esto es lo mismo que hacer 5 pop %ebx, puesto que push resta 4 a pila y pop +4 							#(5x4 = 20).esp(puntero de pila)	
+
+	mov $1, %eax 					#Instrucciones obligatorias de cierre ( las 3 )
+	mov $0, %ebx
+	int $0x80
+
+suma:
+	push %esi
+	push %edi
+	mov $0, %eax
+	mov $0, %edx
+	mov $0, %esi
+bucle:
+	mov (%ebx,%esi,4), %edi
+	cmp $0, %edi			# Compara con 0.
+	jl  negativo			# Salta si es negativo
+	add %edi, %eax
+	adc $0, %edx 			#Suma acarreo, 0 y edx en edx (Cambiar los que tenían el mismo nombre porque si no los pisa. )
+
+seguir:
+	inc       %esi 			#incrementa 1
+	cmp  %esi,%ecx 			#compara
+	jne bucle 			#salta si no es igual a bucle. (jump not equal)
+
+	pop %esi
+	pop %edi
+	ret 				#retorno de carro ( subrrutina)
+
+negativo:
+	add %edi, %eax
+	adc $0xffffffff, %edx
+	jmp seguir			#Saltar a seguir
